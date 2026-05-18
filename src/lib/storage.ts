@@ -1,59 +1,30 @@
 import type { OnHoldStatus } from '../types'
 
-const STORAGE_KEY = 'stijlhoeve_manual_v2'
+const STORAGE_KEY = 'stijlhoeve_v3'
 
-interface ManualEntry {
-  projectwaardeHandmatig: number | null
-  workaroundBevestigd: boolean
-  onHoldStatus: OnHoldStatus
-  notitie: string
+interface StoredData {
+  onHoldStatus: Record<string, OnHoldStatus>
 }
 
-function loadAll(): Record<string, ManualEntry> {
+function load(): StoredData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    return raw ? (JSON.parse(raw) as StoredData) : { onHoldStatus: {} }
   } catch {
-    return {}
+    return { onHoldStatus: {} }
   }
 }
 
-function saveAll(data: Record<string, ManualEntry>): void {
+function save(data: StoredData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
-function defaultEntry(): ManualEntry {
-  return { projectwaardeHandmatig: null, workaroundBevestigd: false, onHoldStatus: 'open', notitie: '' }
+export function getOnHoldStatus(ordernummer: string): OnHoldStatus {
+  return load().onHoldStatus[ordernummer] ?? 'open'
 }
 
-export function getManualEntry(normOrdnr: string): ManualEntry {
-  return loadAll()[normOrdnr] ?? defaultEntry()
-}
-
-export function getAllManualEntries(): Record<string, ManualEntry> {
-  return loadAll()
-}
-
-export function setProjectwaardeHandmatig(normOrdnr: string, waarde: number | null): void {
-  const all = loadAll()
-  all[normOrdnr] = { ...defaultEntry(), ...all[normOrdnr], projectwaardeHandmatig: waarde }
-  saveAll(all)
-}
-
-export function setWorkaroundBevestigd(normOrdnr: string, bevestigd: boolean): void {
-  const all = loadAll()
-  all[normOrdnr] = { ...defaultEntry(), ...all[normOrdnr], workaroundBevestigd: bevestigd }
-  saveAll(all)
-}
-
-export function setOnHoldStatus(normOrdnr: string, status: OnHoldStatus): void {
-  const all = loadAll()
-  all[normOrdnr] = { ...defaultEntry(), ...all[normOrdnr], onHoldStatus: status }
-  saveAll(all)
-}
-
-export function setNotitie(normOrdnr: string, notitie: string): void {
-  const all = loadAll()
-  all[normOrdnr] = { ...defaultEntry(), ...all[normOrdnr], notitie }
-  saveAll(all)
+export function setOnHoldStatus(ordernummer: string, status: OnHoldStatus): void {
+  const data = load()
+  data.onHoldStatus[ordernummer] = status
+  save(data)
 }

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
-import { X, Check } from 'lucide-react'
+import { useEffect } from 'react'
+import { X } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { useApp } from '../AppContext'
-import { setProjectwaardeHandmatig, setWorkaroundBevestigd, setOnHoldStatus, setNotitie } from '../lib/storage'
+import { setOnHoldStatus } from '../lib/storage'
 import { formatDate } from '../lib/excelDate'
 import type { OnHoldStatus, EnrichedOrder } from '../types'
 
@@ -12,7 +12,7 @@ interface Props {
 }
 
 function eur(n: number) {
-  return '€ ' + Math.round(n).toLocaleString('nl-NL')
+  return '€ ' + Math.round(n).toLocaleString('nl-NL')
 }
 
 const ON_HOLD_OPTIONS: { value: OnHoldStatus; label: string }[] = [
@@ -23,83 +23,39 @@ const ON_HOLD_OPTIONS: { value: OnHoldStatus; label: string }[] = [
   { value: 'klaar-om-te-factureren', label: 'Klaar om te factureren' },
 ]
 
-const SOURCE_BADGE: Record<string, string> = {
-  manual:     'manual',
-  referentie: 'referentie',
-  berekend:   'berekend',
-  exact:      'exact',
-}
-
-const BRON_BADGE: Record<string, string> = {
-  referentie: 'bron_referentie',
-  bank:       'bron_bank',
-  debiteuren: 'bron_debiteuren',
-  onbekend:   'bron_onbekend',
-}
-
 export function ProjectKaart({ ordnr, onClose }: Props) {
   const { state, recompute } = useApp()
   const e: EnrichedOrder | undefined = ordnr
-    ? state.enrichedOrders.find(x => x.order.normOrdnr === ordnr)
+    ? state.enrichedOrders.find(x => x.ordernummer === ordnr)
     : undefined
 
-  const [pwInput, setPwInput] = useState('')
-  const [notitieValue, setNotitieValue] = useState('')
-  const notitieRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    if (e) {
-      setPwInput(e.projectwaardeHandmatig !== null ? String(e.projectwaardeHandmatig) : '')
-      setNotitieValue(e.notitie)
-    }
-  }, [ordnr])
-
-  // Close on Escape
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => { if (ev.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  function savePw() {
-    if (!e) return
-    const val = parseFloat(pwInput.replace(',', '.'))
-    setProjectwaardeHandmatig(e.order.normOrdnr, isNaN(val) ? null : val)
-    recompute()
-  }
-
   function saveOnHold(status: OnHoldStatus) {
     if (!e) return
-    setOnHoldStatus(e.order.normOrdnr, status)
+    setOnHoldStatus(e.ordernummer, status)
     recompute()
   }
 
-  function saveNotitie() {
-    if (!e) return
-    setNotitie(e.order.normOrdnr, notitieValue)
-  }
-
-  function bevestigWorkaround() {
-    if (!e) return
-    setWorkaroundBevestigd(e.order.normOrdnr, true)
-    recompute()
-  }
-
-  const betaalPct = e && e.origineleProjectwaarde > 0
-    ? Math.min(100, Math.round((e.totalBetaald / e.origineleProjectwaarde) * 100))
+  const betaalPct = e && e.orderbedrag > 0
+    ? Math.min(100, Math.round((e.totaalBetaald / e.orderbedrag) * 100))
     : 0
 
-  const issues = e ? state.issues.filter(i => i.ordernummer === e.order.normOrdnr) : []
+  const issues = e ? state.issues.filter(i => i.ordernummer === e.ordernummer) : []
 
-  const CARD = {
+  const CARD: React.CSSProperties = {
     background: 'var(--bg-card)',
     border: '1px solid var(--border-card)',
     borderRadius: 'var(--radius-card)',
     backdropFilter: 'blur(16px)',
   }
 
-  const LABEL_STYLE: React.CSSProperties = {
-    fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const,
+  const LABEL: React.CSSProperties = {
+    fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
     letterSpacing: '0.08em', color: 'var(--text-label)',
     fontFamily: 'var(--font-body)', marginBottom: 4,
   }
@@ -108,18 +64,11 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 300,
-          backgroundColor: 'rgba(0,0,0,0.55)',
-          backdropFilter: 'blur(4px)',
-          animation: 'fadeIn 0.15s ease',
-        }}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.15s ease' }}
       />
 
-      {/* Panel */}
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 301,
         width: 'min(560px, 100vw)',
@@ -142,27 +91,23 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                   <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                    #{e.order.normOrdnr}
+                    #{e.ordernummer}
                   </span>
-                  <StatusBadge value={e.order.orderstatus} small />
-                  <StatusBadge value={SOURCE_BADGE[e.projectwaardeSource]} small />
+                  <StatusBadge value={e.orderstatus} small />
                 </div>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>
-                  {e.order.klantnaam}
+                  {e.klantnaam}
                 </h2>
-                {e.order.omschrijving && (
+                {e.omschrijving && (
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                    {e.order.omschrijving}
+                    {e.omschrijving}
                   </div>
                 )}
                 <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-                  {formatDate(e.order.orderdatum)} · {e.order.factuurstatus}
+                  {formatDate(e.orderdatum)} · {e.factuurstatus}
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', flexShrink: 0 }}
-              >
+              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', flexShrink: 0 }}>
                 <X size={18} />
               </button>
             </div>
@@ -170,12 +115,12 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
             {/* Hero numbers */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Projectwaarde', value: eur(e.origineleProjectwaarde), color: '#fff' },
-                { label: 'Betaald',       value: e.betaalStatusBron === 'onbekend' ? '—' : eur(e.totalBetaald), color: e.totalBetaald > 0 ? 'var(--green-bright)' : 'var(--text-muted)' },
-                { label: 'Openstaand',    value: e.betaalStatusBron === 'onbekend' ? '—' : eur(e.openstaand),   color: e.openstaand > 0 ? 'var(--amber-bright)' : 'var(--green-bright)' },
+                { label: 'Orderbedrag',  value: eur(e.orderbedrag),   color: '#fff' },
+                { label: 'Betaald',      value: eur(e.totaalBetaald), color: e.totaalBetaald > 0 ? 'var(--green-bright)' : 'var(--text-muted)' },
+                { label: 'Openstaand',   value: eur(e.openstaand),    color: e.openstaand > 0 ? 'var(--amber-bright)' : 'var(--green-bright)' },
               ].map(h => (
                 <div key={h.label} style={{ ...CARD, padding: '14px 16px', textAlign: 'center' }}>
-                  <div style={LABEL_STYLE}>{h.label}</div>
+                  <div style={LABEL}>{h.label}</div>
                   <div style={{ fontSize: 20, fontFamily: 'var(--font-mono)', fontWeight: 700, color: h.color, fontVariantNumeric: 'tabular-nums' }}>
                     {h.value}
                   </div>
@@ -183,111 +128,73 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
               ))}
             </div>
 
-            {/* Progress bar */}
+            {/* Voortgangsbalk */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Voortgang</span>
-                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                  {e.betaalStatusBron === 'onbekend' ? '—' : `${betaalPct}%`}
-                </span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Voortgang betaling</span>
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{betaalPct}%</span>
               </div>
               <div style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.06)' }}>
-                <div style={{ height: '100%', width: `${betaalPct}%`, backgroundColor: 'var(--green)', borderRadius: 2, transition: 'width 0.6s ease', animation: 'growWidth 0.6s ease both' }} />
+                <div style={{ height: '100%', width: `${betaalPct}%`, backgroundColor: 'var(--green)', borderRadius: 2, transition: 'width 0.6s ease' }} />
               </div>
             </div>
 
             {/* Financieel overzicht */}
             <div style={{ ...CARD, padding: 0, overflow: 'hidden', marginBottom: 16 }}>
               <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.15)' }}>
-                <span style={LABEL_STYLE}>Financieel overzicht</span>
+                <span style={LABEL}>Financieel overzicht</span>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {[
-                    { label: 'Originele projectwaarde', value: eur(e.origineleProjectwaarde), badge: SOURCE_BADGE[e.projectwaardeSource], highlight: true },
-                    { label: 'Exact orderwaarde',       value: eur(e.exactOrderwaarde) },
-                    { label: 'Aanbetaling gefactureerd', value: e.aanbetalingGefactureerd > 0 ? eur(e.aanbetalingGefactureerd) : '—' },
-                    { label: 'Aanbetaling betaald',     value: e.aanbetalingBetaald > 0 ? eur(e.aanbetalingBetaald) : '—', badge: e.aanbetalingBetaald > 0 ? BRON_BADGE[e.betaalStatusBron] : undefined },
-                    { label: 'Totaal gefactureerd',     value: eur(e.totalGefactureerd) },
-                    { label: 'Totaal betaald',          value: e.betaalStatusBron === 'onbekend' ? '—' : eur(e.totalBetaald), badge: BRON_BADGE[e.betaalStatusBron] },
-                    { label: 'Nog te factureren',       value: eur(e.nogTeFactureren), color: e.nogTeFactureren > 0 ? 'var(--amber-bright)' : 'var(--text-muted)' },
-                    { label: 'Nog te ontvangen',        value: e.betaalStatusBron === 'onbekend' ? '—' : eur(e.openstaand), color: e.openstaand > 0 ? 'var(--amber-bright)' : 'var(--green-bright)' },
+                    { label: 'Orderbedrag (masterbestand)', value: eur(e.orderbedrag), highlight: true, color: '#fff' as const },
+                    { label: 'Totaal betaald',  value: eur(e.totaalBetaald), color: (e.totaalBetaald > 0 ? 'var(--green-bright)' : 'var(--text-muted)') as string },
+                    { label: 'Openstaand',       value: eur(e.openstaand),   color: (e.openstaand > 0 ? 'var(--amber-bright)' : 'var(--green-bright)') as string },
+                    { label: 'Betalingsstatus',  value: e.betalingsstatus || '—', color: 'var(--text-secondary)' as string },
                   ].map((row, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                       <td style={{ padding: '9px 16px', fontSize: 12, color: row.highlight ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: row.highlight ? 600 : 400 }}>
                         {row.label}
                       </td>
-                      <td style={{ padding: '9px 16px', textAlign: 'right', fontSize: 13, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: row.color ?? 'var(--text-primary)', fontWeight: row.highlight ? 700 : 400 }}>
+                      <td style={{ padding: '9px 16px', textAlign: 'right', fontSize: 13, fontFamily: row.label === 'Betalingsstatus' ? 'var(--font-body)' : 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: row.color, fontWeight: row.highlight ? 700 : 400 }}>
                         {row.value}
-                      </td>
-                      <td style={{ padding: '9px 16px 9px 8px', textAlign: 'right', width: 1, whiteSpace: 'nowrap' }}>
-                        {row.badge && <StatusBadge value={row.badge} small />}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-
-              {/* Projectwaarde aanpassen — always visible */}
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.10)' }}>
-                <div style={LABEL_STYLE}>Projectwaarde aanpassen</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    value={pwInput}
-                    onChange={ev => setPwInput(ev.target.value)}
-                    onBlur={savePw}
-                    onKeyDown={ev => { if (ev.key === 'Enter') { savePw(); ev.currentTarget.blur() } }}
-                    placeholder="Voer projectwaarde in..."
-                    style={{
-                      flex: 1, padding: '7px 12px',
-                      background: 'var(--bg-card)', border: '1px solid var(--border-card)',
-                      borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)',
-                      fontSize: 13, fontFamily: 'var(--font-mono)',
-                      outline: 'none', transition: 'border-color 0.15s ease',
-                    }}
-                    onFocus={ev => (ev.target.style.borderColor = 'var(--green-border)')}
-                    onBlurCapture={ev => (ev.target.style.borderColor = 'var(--border-card)')}
-                  />
-                  {pwInput && (
-                    <button
-                      onClick={savePw}
-                      style={{ padding: '7px 12px', background: 'var(--green-dim)', border: '1px solid var(--green-border)', borderRadius: 'var(--radius-xs)', cursor: 'pointer', color: 'var(--green-bright)', display: 'flex', alignItems: 'center' }}
-                    >
-                      <Check size={14} />
-                    </button>
-                  )}
-                </div>
-                {e.projectwaardeHandmatig !== null && (
-                  <div style={{ marginTop: 5, fontSize: 10.5, color: 'var(--blue-bright)', fontFamily: 'var(--font-mono)' }}>
-                    Handmatig ingevoerd — gaat boven alle andere bronnen
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Workaround blok */}
-            {e.workaroundGedetecteerd && !e.workaroundBevestigd && e.projectwaardeSource !== 'manual' && (
-              <div style={{ padding: '14px 16px', background: 'var(--amber-dim)', border: '1px solid var(--amber-border)', borderRadius: 'var(--radius-card)', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber-bright)', marginBottom: 6 }}>
-                  Aanbetaling-workaround gedetecteerd
+            {/* Betalingen */}
+            {e.betalingen.length > 0 && (
+              <div style={{ ...CARD, padding: 0, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.15)' }}>
+                  <span style={LABEL}>Betalingen ({e.betalingen.length})</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--amber)', lineHeight: 1.5, marginBottom: 10 }}>
-                  Exact toont {eur(e.exactOrderwaarde)} — berekende projectwaarde is {eur(e.origineleProjectwaarde)}.
-                  Kloppen deze getallen?
-                </div>
-                <button
-                  onClick={bevestigWorkaround}
-                  style={{ padding: '7px 16px', background: 'var(--amber-dim)', border: '1px solid var(--amber-border)', borderRadius: 'var(--radius-xs)', cursor: 'pointer', color: 'var(--amber-bright)', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Check size={13} />
-                  Bevestigen
-                </button>
+                {e.betalingen.map((b, i) => (
+                  <div key={i} style={{ padding: '9px 16px', borderBottom: i < e.betalingen.length - 1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {b.betaaldatum ? formatDate(b.betaaldatum) : '—'}
+                    </span>
+                    <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--green-bright)', fontVariantNumeric: 'tabular-nums' }}>
+                      {eur(b.betaalbedrag)}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* On-hold selector */}
+            {/* Opmerking van Glenn */}
+            {e.notitie && (
+              <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(200,168,75,0.06)', border: '1px solid var(--amber-border)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ ...LABEL, color: 'var(--amber)', marginBottom: 5 }}>Opmerking van Glenn</div>
+                <div style={{ fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.5 }}>{e.notitie}</div>
+              </div>
+            )}
+
+            {/* Status */}
             <div style={{ marginBottom: 16 }}>
-              <div style={LABEL_STYLE}>Status</div>
+              <div style={LABEL}>Status</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {ON_HOLD_OPTIONS.map(opt => (
                   <button
@@ -308,41 +215,16 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
               </div>
             </div>
 
-            {/* Notitieveld */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={LABEL_STYLE}>Notitie</div>
-              <textarea
-                ref={notitieRef}
-                value={notitieValue}
-                onChange={ev => setNotitieValue(ev.target.value)}
-                onBlur={saveNotitie}
-                placeholder="Vrije notitie voor dit project..."
-                rows={3}
-                style={{
-                  width: '100%', padding: '10px 12px',
-                  background: 'var(--bg-card)', border: '1px solid var(--border-card)',
-                  borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)',
-                  fontSize: 13, fontFamily: 'var(--font-body)', lineHeight: 1.5,
-                  resize: 'vertical', outline: 'none',
-                  transition: 'border-color 0.15s ease',
-                }}
-                onFocus={ev => (ev.target.style.borderColor = 'var(--green-border)')}
-                onBlurCapture={ev => (ev.target.style.borderColor = 'var(--border-card)')}
-              />
-            </div>
-
-            {/* Issues voor deze order */}
+            {/* Issues */}
             {issues.length > 0 && (
               <div>
-                <div style={LABEL_STYLE}>Issues ({issues.length})</div>
+                <div style={LABEL}>Issues ({issues.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {issues.map((issue, i) => (
                     <div key={i} style={{ ...CARD, padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                       <StatusBadge value={issue.severity} small />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                          {issue.omschrijving}
-                        </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        {issue.omschrijving}
                       </div>
                     </div>
                   ))}
@@ -357,7 +239,6 @@ export function ProjectKaart({ ordnr, onClose }: Props) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes slideInRight { from { transform: translateX(100%) } to { transform: translateX(0) } }
-        @keyframes spin { to { transform: rotate(360deg) } }
       `}</style>
     </>
   )

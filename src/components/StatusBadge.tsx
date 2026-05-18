@@ -10,18 +10,6 @@ const STYLES: Record<string, { bg: string; color: string; border: string; dot: s
   waarschuwing: { bg: 'var(--amber-dim)', color: 'var(--amber)',       border: 'var(--amber-border)', dot: 'var(--amber)',         label: 'Waarschuwing' },
   info:       { bg: 'var(--blue-dim)',  color: 'var(--blue-bright)',  border: 'var(--blue-border)',  dot: 'var(--blue-bright)',  label: 'Info' },
 
-  // Projectwaarde source
-  manual:     { bg: 'var(--blue-dim)',                 color: 'var(--blue-bright)',  border: 'var(--blue-border)',            dot: 'var(--blue-bright)',  label: 'Handmatig ingevoerd' },
-  referentie: { bg: 'var(--green-dim)',                color: 'var(--green-bright)', border: 'var(--green-border)',           dot: 'var(--green-bright)', label: 'Bevestigd via referentie' },
-  berekend:   { bg: 'var(--amber-dim)',                color: 'var(--amber-bright)', border: 'var(--amber-border)',           dot: 'var(--amber-bright)', label: 'Berekend — controleer' },
-  exact:      { bg: 'rgba(255,255,255,0.05)',          color: 'var(--text-secondary)',border: 'rgba(255,255,255,0.10)',       dot: 'var(--text-muted)',   label: 'Exact orderwaarde' },
-
-  // Betaal status bron
-  bron_referentie: { bg: 'var(--green-dim)',           color: 'var(--green-bright)', border: 'var(--green-border)',           dot: 'var(--green-bright)', label: 'Via referentie' },
-  bron_bank:       { bg: 'var(--green-dim)',           color: 'var(--green-bright)', border: 'var(--green-border)',           dot: 'var(--green-bright)', label: 'Via bank' },
-  bron_debiteuren: { bg: 'var(--blue-dim)',            color: 'var(--blue-bright)',  border: 'var(--blue-border)',            dot: 'var(--blue-bright)',  label: 'Via debiteuren' },
-  bron_onbekend:   { bg: 'var(--amber-dim)',           color: 'var(--amber-bright)', border: 'var(--amber-border)',           dot: 'var(--amber-bright)', label: 'Onbekend — controleer' },
-
   // On-hold status
   'open':                   { bg: 'var(--green-dim)',  color: 'var(--green-bright)', border: 'var(--green-border)',           dot: 'var(--green-bright)', label: 'Open' },
   'on-hold-netbeheerder':   { bg: 'var(--red-dim)',    color: 'var(--red-bright)',   border: 'var(--red-border)',             dot: 'var(--red-bright)',   label: 'On hold netbeheerder' },
@@ -30,13 +18,15 @@ const STYLES: Record<string, { bg: string; color: string; border: string; dot: s
   'klaar-om-te-factureren': { bg: 'var(--blue-dim)',   color: 'var(--blue-bright)',  border: 'var(--blue-border)',            dot: 'var(--blue-bright)',  label: 'Klaar om te factureren' },
 
   // Order status
-  'Open':        { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.10)', dot: 'var(--text-muted)', label: 'Open' },
-  'Gedeeltelijk': { bg: 'var(--amber-dim)',      color: 'var(--amber-bright)',   border: 'var(--amber-border)',    dot: 'var(--amber-bright)', label: 'Deels betaald' },
-  'Volledig':     { bg: 'var(--green-dim)',       color: 'var(--green-bright)',   border: 'var(--green-border)',    dot: 'var(--green-bright)', label: 'Volledig' },
+  'Open':         { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.10)', dot: 'var(--text-muted)',   label: 'Open' },
+  'Gedeeltelijk': { bg: 'var(--amber-dim)',        color: 'var(--amber-bright)',   border: 'var(--amber-border)',    dot: 'var(--amber-bright)', label: 'Deels betaald' },
+  'Volledig':     { bg: 'var(--green-dim)',         color: 'var(--green-bright)',   border: 'var(--green-border)',    dot: 'var(--green-bright)', label: 'Volledig' },
+  'Geannuleerd':  { bg: 'var(--red-dim)',           color: 'var(--red-bright)',     border: 'var(--red-border)',      dot: 'var(--red-bright)',   label: 'Geannuleerd' },
 
   // Categorie
   service:     { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)',     border: 'rgba(255,255,255,0.08)', dot: 'var(--text-muted)',   label: 'Service/Garantie' },
   commercieel: { bg: 'var(--green-dim)',        color: 'var(--green)',          border: 'var(--green-border)',    dot: 'var(--green)',        label: 'Commercieel' },
+  geannuleerd: { bg: 'var(--red-dim)',           color: 'var(--red-bright)',     border: 'var(--red-border)',      dot: 'var(--red-bright)',   label: 'Geannuleerd' },
 }
 
 const DEFAULT_STYLE = { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'rgba(255,255,255,0.08)', dot: 'var(--text-muted)', label: '' }

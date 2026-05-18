@@ -16,14 +16,19 @@ export function findCol(headers: string[], ...candidates: string[]): number {
   return -1
 }
 
-export function readExcelFile(file: File): Promise<unknown[][]> {
+export function readExcelFile(file: File, sheetName?: string): Promise<unknown[][]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target!.result as ArrayBuffer)
         const wb = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'yyyy-mm-dd' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
+        const wsName = sheetName
+          ? (wb.SheetNames.find(n => n === sheetName)
+              ?? wb.SheetNames.find(n => n.toLowerCase().includes(sheetName.toLowerCase()))
+              ?? wb.SheetNames[0])
+          : wb.SheetNames[0]
+        const ws = wb.Sheets[wsName]
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as unknown[][]
         resolve(rows)
       } catch (err) {
